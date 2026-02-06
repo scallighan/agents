@@ -460,7 +460,7 @@ if __name__ == "__main__":
         app = yfinance_server.sse_app
         
         # Run with uvicorn on custom port
-        uvicorn.run(app, host="127.0.0.1", port=port)
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         print("Starting Yahoo Finance MCP server (stdio mode)...")
         yfinance_server.run(transport="stdio")

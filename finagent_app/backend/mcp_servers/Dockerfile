@@ -22,7 +22,7 @@ COPY main.py .
 COPY __init__.py .
 
 # Expose port (Azure Container Apps will override this)
-EXPOSE 8000
+EXPOSE 8000,8001
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -30,4 +30,4 @@ ENV PORT=8000
 
 
 # Run the server
-CMD ["python", "main.py"]
+CMD ["python", "start_server.py"]
