@@ -31,4 +31,4 @@ ENV PORT=8000
 
 
 # Run the server
-CMD ["python", "start_server.py"]
+CMD ["python", "main.py"]
