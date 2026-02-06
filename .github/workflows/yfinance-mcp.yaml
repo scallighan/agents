@@ -6,12 +6,16 @@ name: yfinance-mcp
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main, dev ]
+    branches: 
+      - dev
+      - main
     tags: [ 'v*.*.*' ]
     paths:
       - "finagent_app/backend/mcp_servers/**"
   pull_request:
-    branches: [ main, dev ]
+    branches: 
+      - dev
+      - main
     paths:
       - "finagent_app/backend/mcp_servers/**"
   # Allows you to run this workflow manually from the Actions tab
