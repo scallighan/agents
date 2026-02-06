@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy MCP server code
 COPY yahoo_finance_server.py .
 COPY main.py .
+COPY start_server.py .
 COPY __init__.py .
 
 # Expose port (Azure Container Apps will override this)
