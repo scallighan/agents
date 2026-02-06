@@ -129,3 +129,8 @@ finagent_dynamic_app/backend_dotnet/src/FinAgent.Backend/obj/*
 finagent_dynamic_app/backend_dotnet/tests/FinAgent.Backend.Tests/bin/*
 finagent_dynamic_app/backend_dotnet/tests/FinAgent.Backend.Tests/obj/*
 finagent_dynamic_app/backend_dotnet/src/FinAgent.Backend/appsettings.Development.json
+
+.env
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform
