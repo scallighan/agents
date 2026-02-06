@@ -92,7 +92,7 @@ async def handle_sse(request: Request):
 
 @app.post("/sse", tags=["MCP"], dependencies=[Depends(verify_api_key)])
 async def handle_sse_post(request: Request):
-    handle_sse(request)
+    return await handle_sse(request)
 
 if __name__ == "__main__":
     # Get port from environment variable (Azure Container Apps uses PORT)
