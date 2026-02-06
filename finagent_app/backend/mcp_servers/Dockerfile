@@ -22,7 +22,7 @@ COPY main.py .
 COPY __init__.py .
 
 # Expose port (Azure Container Apps will override this)
-EXPOSE 8000,8001
+EXPOSE 8000 8001
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

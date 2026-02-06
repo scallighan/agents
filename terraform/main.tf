@@ -198,14 +198,14 @@ resource "azurerm_container_app" "mcp" {
       name                = "http-1"
       concurrent_requests = "100"
     }
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 1
   }
 
   ingress {
     allow_insecure_connections = false
     external_enabled           = true
-    target_port                = 8000
+    target_port                = 8001
     transport                  = "auto"
     traffic_weight {
       latest_revision = true
