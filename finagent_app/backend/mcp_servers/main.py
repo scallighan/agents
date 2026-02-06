@@ -69,7 +69,6 @@ async def health_check():
         "version": "1.0.0"
     }
 
-
 @app.get("/sse", tags=["MCP"], dependencies=[Depends(verify_api_key)])
 async def handle_sse(request: Request):
     """
@@ -91,6 +90,9 @@ async def handle_sse(request: Request):
             init_options,
         )
 
+@app.post("/sse", tags=["MCP"], dependencies=[Depends(verify_api_key)]  )
+async def post_sse(request: Request):
+    await handle_sse(request)
 
 if __name__ == "__main__":
     # Get port from environment variable (Azure Container Apps uses PORT)

@@ -56,7 +56,7 @@ resource "azurerm_virtual_network" "default" {
   name                = "vnet-${local.func_name}-${local.loc_for_naming}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["172.18.0.0/16"]
+  address_space       = ["172.19.0.0/16"]
 
   tags = local.tags
 }
@@ -65,14 +65,14 @@ resource "azurerm_subnet" "default" {
   name                 = "default-subnet-${local.loc_for_naming}"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.default.name
-  address_prefixes     = ["172.18.0.0/24"]
+  address_prefixes     = ["172.19.0.0/24"]
 }
 
 resource "azurerm_subnet" "cluster" {
   name                 = "cluster-subnet-${local.loc_for_naming}"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.default.name
-  address_prefixes     = ["172.18.1.0/24"]
+  address_prefixes     = ["172.19.1.0/24"]
 
   delegation {
     name = "Microsoft.App/environments"
@@ -88,7 +88,7 @@ resource "azurerm_subnet" "pe" {
   name                 = "pe-subnet-${local.loc_for_naming}"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.default.name
-  address_prefixes     = ["172.18.2.0/24"]
+  address_prefixes     = ["172.19.2.0/24"]
 }
 
 resource "azurerm_key_vault" "kv" {
@@ -113,6 +113,18 @@ resource "azurerm_role_assignment" "kv_cert_officer" {
   scope                            = azurerm_key_vault.kv.id
   role_definition_name             = "Key Vault Certificates Officer"
   principal_id                     = data.azurerm_client_config.current.object_id
+}
+
+resource "random_password" "password" {
+  length           = 16
+  special          = false
+}
+
+resource "azurerm_key_vault_secret" "apikey" {
+  depends_on = [ azurerm_role_assignment.kv_officer, azurerm_role_assignment.kv_cert_officer ]
+  name         = "MCP-API-KEY"
+  value        = random_password.password.result
+  key_vault_id = azurerm_key_vault.kv.id
 }
 
 resource "azurerm_application_insights" "app" {
@@ -177,6 +189,10 @@ resource "azurerm_container_app" "mcp" {
       cpu    = 0.5
       memory = "1.0Gi"
 
+      env {
+        name = "MCP_API_KEY"
+        secret_name = "mcp-api-key"
+      }
     }
     http_scale_rule {
       name                = "http-1"
@@ -195,6 +211,12 @@ resource "azurerm_container_app" "mcp" {
       latest_revision = true
       percentage      = 100
     }
+  }
+
+  secret {
+    name = "mcp-api-key"
+    identity = azurerm_user_assigned_identity.this.id
+    key_vault_secret_id = azurerm_key_vault_secret.apikey.id
   }
 
   identity {

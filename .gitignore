@@ -134,3 +134,4 @@ finagent_dynamic_app/backend_dotnet/src/FinAgent.Backend/appsettings.Development
 **/terraform.tfstate
 **/terraform.tfstate.backup
 **/.terraform
+**/.terraform.tfstate.lock.info
