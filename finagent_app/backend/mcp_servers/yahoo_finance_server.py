@@ -10,11 +10,14 @@ import json
 from enum import Enum
 from typing import Optional
 import logging
+import os
 
 import pandas as pd
 import yfinance as yf
 from fastmcp import FastMCP, Context
-
+from fastmcp.server.dependencies import get_http_headers, get_access_token
+from fastmcp.server.middleware import Middleware, MiddlewareContext
+from starlette.responses import JSONResponse
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,6 +73,21 @@ Available tools:
 """,
 )
 
+
+class HeaderMiddleware(Middleware):
+    async def on_message(self, context: MiddlewareContext, call_next):
+        # This method receives ALL messages regardless of type
+        headers = get_http_headers()
+        #logger.info(f"HeaderMiddleware called: {{'headers': {headers}}}")
+        #logger.info(f"HeaderMiddleware processing: {context.method}")
+        if headers.get("x-api-key") and headers.get("x-api-key") != os.environ.get("MCP_API_KEY"):
+            logger.warning(f"Unauthorized access attempt with API key: {headers.get('x-api-key')}")
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        result = await call_next(context)
+        #logger.info(f"HeaderMiddleware completed: {context.method}")
+        return result
+
+yfinance_server.add_middleware(HeaderMiddleware())
 
 # ============= Stock Information Tools =============
 
