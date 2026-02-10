@@ -31,4 +31,4 @@ ENV PORT=8000
 
 
 # Run the server
-CMD ["python", "main.py"]
+CMD ["python", "yahoo_finance_server.py"]

@@ -9,11 +9,18 @@ This server exposes tools for stock information, financial statements, options d
 import json
 from enum import Enum
 from typing import Optional
+import logging
 
 import pandas as pd
 import yfinance as yf
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP, Context
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Define enums for parameter validation
 class FinancialType(str, Enum):
@@ -435,32 +442,5 @@ async def get_recommendations(ticker: str, recommendation_type: str, months_back
 
 
 if __name__ == "__main__":
-    import sys
-    import os
-    
-    # Check command line arguments for transport type
-    transport = "sse"  # Default to SSE (HTTP)
-    port = 8001  # Default port to avoid conflict with backend on 8000
-    
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "--stdio":
-            transport = "stdio"
-        elif sys.argv[1] == "--sse":
-            transport = "sse"
-            if len(sys.argv) > 2:
-                port = int(sys.argv[2])
-    
-    if transport == "sse":
-        print(f"Starting Yahoo Finance MCP server with SSE transport")
-        print(f"Server will be available at: http://localhost:{port}/sse")
-        print("Press Ctrl+C to stop the server")
-        
-        # Get the SSE ASGI app from FastMCP
-        import uvicorn
-        app = yfinance_server.sse_app
-        
-        # Run with uvicorn on custom port
-        uvicorn.run(app, host="0.0.0.0", port=port)
-    else:
-        print("Starting Yahoo Finance MCP server (stdio mode)...")
-        yfinance_server.run(transport="stdio")
+    logger.info("Starting Yahoo Finance Server", extra={"host": "0.0.0.0", "port": 8000})
+    yfinance_server.run(transport="http", host="0.0.0.0", port=8000)
