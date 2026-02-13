@@ -14,7 +14,7 @@ from datetime import datetime
 import structlog
 
 # Microsoft Agent Framework imports
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse, AgentRunResponseUpdate, AgentThread
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse, AgentResponseUpdate, AgentSession
 
 # Azure Speech imports
 from azure.cognitiveservices.speech import (
@@ -114,11 +114,11 @@ class SpeechTranscriptionAgent(BaseAgent):
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """
         Execute the agent - REQUIRED by MAF.
         
@@ -137,18 +137,18 @@ class SpeechTranscriptionAgent(BaseAgent):
             mode = kwargs.get("mode", "file")
             
             if not session_id:
-                return AgentRunResponse(
-                    messages=[ChatMessage(
+                return AgentResponse(
+                    messages=[Message(
                         role=Role.ASSISTANT,
-                        contents=[TextContent(text="Error: session_id is required")]
+                        contents=[Content.from_text("Error: session_id is required")]
                     )]
                 )
             
             if mode == "file" and not audio_file_path:
-                return AgentRunResponse(
-                    messages=[ChatMessage(
+                return AgentResponse(
+                    messages=[Message(
                         role=Role.ASSISTANT,
-                        contents=[TextContent(text="Error: audio_file_path is required for file mode")]
+                        contents=[Content.from_text("Error: audio_file_path is required for file mode")]
                     )]
                 )
             
@@ -164,57 +164,57 @@ class SpeechTranscriptionAgent(BaseAgent):
                 }
             
             result_text = json.dumps(result, ensure_ascii=False, default=str)
-            return AgentRunResponse(
-                messages=[ChatMessage(
+            return AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=result_text)]
+                    contents=[Content.from_text(result_text)]
                 )]
             )
             
         except Exception as e:
             logger.error(f"Error in speech transcription agent", error=str(e), exc_info=True)
-            return AgentRunResponse(
-                messages=[ChatMessage(
+            return AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=f"Error: {str(e)}")]
+                    contents=[Content.from_text(f"Error: {str(e)}")]
                 )]
             )
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """Stream responses - REQUIRED by MAF."""
         result = await self.run(messages, thread=thread, **kwargs)
         
         for message in result.messages:
-            yield AgentRunResponseUpdate(
+            yield AgentResponseUpdate(
                 messages=[message]
             )
     
     def _normalize_messages(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None
-    ) -> list[ChatMessage]:
-        """Normalize various message formats to list of ChatMessage."""
+        messages: str | Message | list[str] | list[Message] | None
+    ) -> list[Message]:
+        """Normalize various message formats to list of Message."""
         if messages is None:
             return []
         
         if isinstance(messages, str):
-            return [ChatMessage(role=Role.USER, contents=[TextContent(text=messages)])]
+            return [Message(role=Role.USER, contents=[Content.from_text(messages)])]
         
-        if isinstance(messages, ChatMessage):
+        if isinstance(messages, Message):
             return [messages]
         
         if isinstance(messages, list):
             normalized = []
             for msg in messages:
                 if isinstance(msg, str):
-                    normalized.append(ChatMessage(role=Role.USER, contents=[TextContent(text=msg)]))
-                elif isinstance(msg, ChatMessage):
+                    normalized.append(Message(role=Role.USER, contents=[Content.from_text(msg)]))
+                elif isinstance(msg, Message):
                     normalized.append(msg)
             return normalized
         

@@ -8,11 +8,11 @@ ENV VITE_BACKEND_URL=${BACKEND_URL}
 WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY advisor_productivity_app/frontend/package*.json ./
+COPY /frontend/package*.json ./
 RUN npm ci
 
 # Copy frontend source
-COPY advisor_productivity_app/frontend/ ./
+COPY /frontend/ ./
 
 # Build frontend with configured backend URL
 RUN echo "Building frontend with VITE_BACKEND_URL=${VITE_BACKEND_URL}" && npm run build
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements
-COPY advisor_productivity_app/backend/requirements.txt ./
+COPY /backend/requirements.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -53,8 +53,8 @@ ENV PYTHONPATH="/app:${PYTHONPATH}"
 ENV FRONTEND_DIST_PATH="/app/static"
 
 # Copy backend application
-COPY advisor_productivity_app/backend/app /app/app
-COPY advisor_productivity_app/backend/requirements.txt /app/
+COPY /backend/app /app/app
+COPY /backend/requirements.txt /app/
 
 # Copy built frontend static files to be served by FastAPI
 COPY --from=frontend-builder /app/frontend/dist /app/static

@@ -9,7 +9,7 @@ pydantic>=2.11.3  # Required by a2a-sdk
 pydantic-settings
 
 # Microsoft Agent Framework
-agent-framework
+agent-framework==1.0.0b260212
 
 # Azure dependencies (app-specific, not covered by framework)
 azure-identity

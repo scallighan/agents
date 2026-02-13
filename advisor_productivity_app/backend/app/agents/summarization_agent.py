@@ -14,7 +14,7 @@ from pathlib import Path
 import structlog
 
 # Microsoft Agent Framework imports
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse, AgentRunResponseUpdate, AgentThread
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse, AgentResponseUpdate, AgentSession
 
 from openai import AsyncAzureOpenAI
 
@@ -78,11 +78,11 @@ class InvestmentSummarizationAgent(BaseAgent):
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Execute the agent - REQUIRED by MAF."""
         try:
             # Extract context from kwargs
@@ -94,10 +94,10 @@ class InvestmentSummarizationAgent(BaseAgent):
             persona = kwargs.get("persona", "advisor")
             
             if not transcript_segments:
-                return AgentRunResponse(
-                    messages=[ChatMessage(
+                return AgentResponse(
+                    messages=[Message(
                         role=Role.ASSISTANT,
-                        contents=[TextContent(text="Error: No transcript segments provided")]
+                        contents=[Content.from_text("Error: No transcript segments provided")]
                     )]
                 )
             
@@ -112,36 +112,36 @@ class InvestmentSummarizationAgent(BaseAgent):
                 context=kwargs
             )
             
-            # Return result as ChatMessage
+            # Return result as Message
             result_text = json.dumps(result, ensure_ascii=False, default=str)
-            return AgentRunResponse(
-                messages=[ChatMessage(
+            return AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=result_text)]
+                    contents=[Content.from_text(result_text)]
                 )]
             )
             
         except Exception as e:
             logger.error(f"Error in session summarization", error=str(e), exc_info=True)
-            return AgentRunResponse(
-                messages=[ChatMessage(
+            return AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=f"Error: {str(e)}")]
+                    contents=[Content.from_text(f"Error: {str(e)}")]
                 )]
             )
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """Stream responses - REQUIRED by MAF."""
         result = await self.run(messages, thread=thread, **kwargs)
         
         for message in result.messages:
-            yield AgentRunResponseUpdate(
+            yield AgentResponseUpdate(
                 messages=[message]
             )
     

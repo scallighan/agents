@@ -14,7 +14,7 @@ from pathlib import Path
 import structlog
 
 # Microsoft Agent Framework imports
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse, AgentRunResponseUpdate, AgentThread
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse, AgentResponseUpdate, AgentSession
 
 from openai import AsyncAzureOpenAI
 
@@ -88,11 +88,11 @@ class InvestmentSentimentAgent(BaseAgent):
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Execute the agent - REQUIRED by MAF."""
         logger.info(f"🚀 InvestmentSentimentAgent.run() called with messages={type(messages)}, kwargs={list(kwargs.keys())}")
         try:
@@ -112,10 +112,10 @@ class InvestmentSentimentAgent(BaseAgent):
             
             if not content or len(content.strip()) == 0:
                 logger.warning("⚠️ No content provided, returning error response")
-                return AgentRunResponse(
-                    messages=[ChatMessage(
+                return AgentResponse(
+                    messages=[Message(
                         role=Role.ASSISTANT,
-                        contents=[TextContent(text="Error: No content provided for sentiment analysis")]
+                        contents=[Content.from_text("Error: No content provided for sentiment analysis")]
                     )]
                 )
             
@@ -127,13 +127,13 @@ class InvestmentSentimentAgent(BaseAgent):
                 context=kwargs
             )
             
-            # Return result as ChatMessage
+            # Return result as Message
             result_text = json.dumps(result, ensure_ascii=False, default=str)
-            logger.info(f"✅ Returning AgentRunResponse with {len(result_text)} chars")
-            response = AgentRunResponse(
-                messages=[ChatMessage(
+            logger.info(f"✅ Returning AgentResponse with {len(result_text)} chars")
+            response = AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=result_text)]
+                    contents=[Content.from_text(result_text)]
                 )]
             )
             logger.info(f"📦 Response object created: {type(response)}, messages count: {len(response.messages)}")
@@ -144,48 +144,48 @@ class InvestmentSentimentAgent(BaseAgent):
             
         except Exception as e:
             logger.error(f"Error in investment sentiment analysis", error=str(e), exc_info=True)
-            return AgentRunResponse(
-                messages=[ChatMessage(
+            return AgentResponse(
+                messages=[Message(
                     role=Role.ASSISTANT,
-                    contents=[TextContent(text=f"Error: {str(e)}")]
+                    contents=[Content.from_text(f"Error: {str(e)}")]
                 )]
             )
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """Stream responses - REQUIRED by MAF."""
         result = await self.run(messages, thread=thread, **kwargs)
         
         for message in result.messages:
-            yield AgentRunResponseUpdate(
+            yield AgentResponseUpdate(
                 messages=[message]
             )
     
     def _normalize_messages(
         self, 
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None
-    ) -> list[ChatMessage]:
-        """Normalize various message formats to list of ChatMessage."""
+        messages: str | Message | list[str] | list[Message] | None
+    ) -> list[Message]:
+        """Normalize various message formats to list of Message."""
         if messages is None:
             return []
         
         if isinstance(messages, str):
-            return [ChatMessage(role=Role.USER, contents=[TextContent(text=messages)])]
+            return [Message(role=Role.USER, contents=[Content.from_text(messages)])]
         
-        if isinstance(messages, ChatMessage):
+        if isinstance(messages, Message):
             return [messages]
         
         if isinstance(messages, list):
             normalized = []
             for msg in messages:
                 if isinstance(msg, str):
-                    normalized.append(ChatMessage(role=Role.USER, contents=[TextContent(text=msg)]))
-                elif isinstance(msg, ChatMessage):
+                    normalized.append(Message(role=Role.USER, contents=[Content.from_text(msg)]))
+                elif isinstance(msg, Message):
                     normalized.append(msg)
             return normalized
         
