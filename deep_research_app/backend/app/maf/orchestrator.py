@@ -11,14 +11,14 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 import structlog
 
 from agent_framework import (
-    ChatMessage,
+    Message,
     Role,
-    SequentialBuilder,
-    ConcurrentBuilder,
-    WorkflowOutputEvent,
-    TextContent,
-    AgentRunResponse,
+    WorkflowEvent,
+    Content,
+    AgentResponse,
 )
+from agent_framework.orchestrations import SequentialBuilder, ConcurrentBuilder
+
 from .registry import AgentRegistry
 from .observability import ObservabilityService
 from .settings import Settings
@@ -60,7 +60,7 @@ class MagenticOrchestrator:
     async def execute(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage],
+        task: str | Message | Sequence[Message],
         pattern: str,
         agents: Sequence[str],
         tools: Optional[Iterable[str]] = None,
@@ -104,7 +104,7 @@ class MagenticOrchestrator:
 
     async def execute_sequential(
         self,
-        task: str | ChatMessage | Sequence[ChatMessage],
+        task: str | Message | Sequence[Message],
         agent_ids: Sequence[str],
         *,
         tools: Optional[Iterable[str]] = None,
@@ -130,10 +130,10 @@ class MagenticOrchestrator:
 
         workflow_events = await workflow.run(messages)
         results: List[Dict[str, Any]] = []
-        final_conversation: Optional[List[ChatMessage]] = None
+        final_conversation: Optional[List[Message]] = None
 
         for event in workflow_events:
-            if isinstance(event, WorkflowOutputEvent):
+            if isinstance(event, WorkflowEvent):
                 if event.source_executor_id == "end" and event.data:
                     final_conversation = list(event.data)
 
@@ -175,7 +175,7 @@ class MagenticOrchestrator:
 
     async def execute_concurrent(
         self,
-        task: str | ChatMessage | Sequence[ChatMessage],
+        task: str | Message | Sequence[Message],
         agent_ids: Sequence[str],
         *,
         tools: Optional[Iterable[str]] = None,
@@ -200,7 +200,7 @@ class MagenticOrchestrator:
 
         aggregated: Dict[str, str] = {}
         for event in events:
-            if isinstance(event, WorkflowOutputEvent) and event.data:
+            if isinstance(event, WorkflowEvent) and event.data:
                 text_blocks = []
                 for msg in event.data:
                     text_blocks.append(getattr(msg, "text", ""))
@@ -230,14 +230,14 @@ class MagenticOrchestrator:
         self,
         *,
         agent_name: str,
-        input_message: str | ChatMessage | Sequence[ChatMessage],
+        input_message: str | Message | Sequence[Message],
         context: Optional[Dict[str, Any]] = None,
         execution_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Execute a single agent and return its textual output."""
 
         agent = await self._registry.get_agent(agent_name)
-        response: AgentRunResponse = await agent.run(messages=input_message, context=context or {})
+        response: AgentResponse = await agent.run(messages=input_message, context=context or {})
         output = ""
         if response and response.messages:
             last_message = response.messages[-1]
@@ -254,18 +254,18 @@ class MagenticOrchestrator:
     # Helpers
     # ------------------------------------------------------------------
     @staticmethod
-    def _normalise_messages(task: str | ChatMessage | Sequence[ChatMessage]) -> List[ChatMessage]:
+    def _normalise_messages(task: str | Message | Sequence[Message]) -> List[Message]:
         if isinstance(task, list):
             return list(task)
-        if isinstance(task, ChatMessage):
+        if isinstance(task, Message):
             return [task]
-        return [ChatMessage(role=Role.USER, contents=[TextContent(text=str(task))])]
+        return [Message(role=Role.USER, contents=[Content.from_text(str(task))])]
 
     @staticmethod
-    def _summarise_task(task: str | ChatMessage | Sequence[ChatMessage]) -> str:
+    def _summarise_task(task: str | Message | Sequence[Message]) -> str:
         if isinstance(task, str):
             return task[:120]
-        if isinstance(task, ChatMessage):
+        if isinstance(task, Message):
             return getattr(task, "text", "")[:120]
         if isinstance(task, Sequence) and task:
             return MagenticOrchestrator._summarise_task(task[0])

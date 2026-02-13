@@ -5,11 +5,11 @@ FROM node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY deep_research_app/frontend/package*.json ./
-RUN npm ci
+COPY /frontend/package*.json ./
+RUN npm install
 
 # Copy frontend source
-COPY deep_research_app/frontend/ ./
+COPY /frontend/ ./
 
 # Build frontend
 RUN npm run build
@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements
-COPY deep_research_app/backend/requirements.txt ./
+COPY /backend/requirements.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -49,11 +49,11 @@ COPY --from=backend-builder /usr/local/bin /usr/local/bin
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 
 # Copy backend application
-COPY deep_research_app/backend/app /app/app
-COPY deep_research_app/backend/requirements.txt /app/
+COPY /backend/app /app/app
+COPY /backend/requirements.txt /app/
 
 # Copy workflows directory
-COPY deep_research_app/workflows /workflows
+COPY /workflows /workflows
 
 # Copy built frontend static files to be served by FastAPI
 COPY --from=frontend-builder /app/frontend/dist /app/static

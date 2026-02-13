@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 import structlog
 import yaml
 
-from agent_framework import ChatMessage
+from agent_framework import Message
 
 from ..mcp_client import MCPClient
 from ..observability import ObservabilityService
@@ -282,7 +282,7 @@ class WorkflowEngine:
         if isinstance(supplemental, str) and supplemental:
             prompt_parts.append(supplemental)
 
-        message: Union[str, Sequence[ChatMessage]]
+        message: Union[str, Sequence[Message]]
         if prompt_parts:
             message = "\n\n".join(prompt_parts)
         else:

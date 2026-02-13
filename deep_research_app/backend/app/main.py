@@ -53,8 +53,8 @@ from app.services.advanced_prompting_service import AdvancedPromptingService
 
 # Microsoft Agent Framework imports
 from agent_framework import (
-    BaseAgent, AgentRunResponse, AgentRunResponseUpdate,
-    AgentThread, ChatMessage, Role, TextContent
+    BaseAgent, AgentResponse, AgentResponseUpdate,
+    AgentSession, Message, Role, Content
 )
 
 # Azure OpenAI and Tavily imports
@@ -166,14 +166,14 @@ def sanitize_for_json(value: Any) -> Any:
     if isinstance(value, (list, tuple, set)):
         return [sanitize_for_json(item) for item in value]
 
-    if isinstance(value, AgentRunResponse):
+    if isinstance(value, AgentResponse):
         if hasattr(value, "model_dump"):
             return sanitize_for_json(value.model_dump())
         if hasattr(value, "dict"):
             return sanitize_for_json(value.dict())
         return str(value)
 
-    if isinstance(value, AgentRunResponseUpdate):
+    if isinstance(value, AgentResponseUpdate):
         if hasattr(value, "model_dump"):
             return sanitize_for_json(value.model_dump())
         if hasattr(value, "dict"):
@@ -220,11 +220,11 @@ class AIResearchAgent(BaseAgent):
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Execute the agent and return a complete response.
         
         This is the required method for Microsoft Agent Framework compatibility.
@@ -235,15 +235,15 @@ class AIResearchAgent(BaseAgent):
             **kwargs: Additional keyword arguments
             
         Returns:
-            AgentRunResponse containing the agent's reply
+            AgentResponse containing the agent's reply
         """
         # Normalize input messages to a list
         normalized_messages = self._normalize_messages(messages)
         
         if not normalized_messages:
-            response_message = ChatMessage(
+            response_message = Message(
                 role=Role.ASSISTANT,
-                contents=[TextContent(text="Hello! I'm an AI research agent. How can I help you?")]
+                contents=[Content.from_text("Hello! I'm an AI research agent. How can I help you?")]
             )
         else:
             # Get context from kwargs
@@ -275,24 +275,24 @@ class AIResearchAgent(BaseAgent):
                 logger.error(f"AI processing failed", agent=self.agent_id, error=str(e))
                 result_text = f"AI error: {str(e)}"
             
-            response_message = ChatMessage(
+            response_message = Message(
                 role=Role.ASSISTANT,
-                contents=[TextContent(text=result_text)]
+                contents=[Content.from_text(result_text)]
             )
         
         # Notify thread of new messages if provided
         if thread:
             await self._notify_thread_of_new_messages(thread, normalized_messages, response_message)
         
-        return AgentRunResponse(messages=[response_message])
+        return AgentResponse(messages=[response_message])
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """Execute the agent and yield streaming response updates.
         
         This is the required method for Microsoft Agent Framework compatibility.
@@ -303,7 +303,7 @@ class AIResearchAgent(BaseAgent):
             **kwargs: Additional keyword arguments
             
         Yields:
-            AgentRunResponseUpdate objects containing chunks of the response
+            AgentResponseUpdate objects containing chunks of the response
         """
         # For now, implement non-streaming version by yielding complete response
         # Future: Implement true streaming with Azure OpenAI streaming API
@@ -313,8 +313,8 @@ class AIResearchAgent(BaseAgent):
         for message in response.messages:
             if message.contents:
                 for content in message.contents:
-                    if isinstance(content, TextContent):
-                        yield AgentRunResponseUpdate(
+                    if isinstance(content, Content):
+                        yield AgentResponseUpdate(
                             contents=[content],
                             role=Role.ASSISTANT
                         )
@@ -370,11 +370,11 @@ class TavilySearchAgent(BaseAgent):
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Execute the agent and return a complete response.
         
         This is the required method for Microsoft Agent Framework compatibility.
@@ -385,15 +385,15 @@ class TavilySearchAgent(BaseAgent):
             **kwargs: Additional keyword arguments
             
         Returns:
-            AgentRunResponse containing the agent's reply
+            AgentResponse containing the agent's reply
         """
         # Normalize input messages to a list
         normalized_messages = self._normalize_messages(messages)
         
         if not normalized_messages:
-            response_message = ChatMessage(
+            response_message = Message(
                 role=Role.ASSISTANT,
-                contents=[TextContent(text="Hello! I'm a research agent with web search capabilities. What would you like me to research?")]
+                contents=[Content.from_text("Hello! I'm a research agent with web search capabilities. What would you like me to research?")]
             )
         else:
             # Get context from kwargs
@@ -475,24 +475,24 @@ Provide a comprehensive, well-structured response."""
                 logger.error(f"Research processing failed", agent=self.agent_id, error=str(e))
                 result_text = f"Research error: {str(e)}"
             
-            response_message = ChatMessage(
+            response_message = Message(
                 role=Role.ASSISTANT,
-                contents=[TextContent(text=result_text)]
+                contents=[Content.from_text(result_text)]
             )
         
         # Notify thread of new messages if provided
         if thread:
             await self._notify_thread_of_new_messages(thread, normalized_messages, response_message)
         
-        return AgentRunResponse(messages=[response_message])
+        return AgentResponse(messages=[response_message])
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """Execute the agent and yield streaming response updates.
         
         This is the required method for Microsoft Agent Framework compatibility.
@@ -503,7 +503,7 @@ Provide a comprehensive, well-structured response."""
             **kwargs: Additional keyword arguments
             
         Yields:
-            AgentRunResponseUpdate objects containing chunks of the response
+            AgentResponseUpdate objects containing chunks of the response
         """
         # For now, implement non-streaming version by yielding complete response
         # Future: Implement true streaming with Azure OpenAI streaming API
@@ -513,8 +513,8 @@ Provide a comprehensive, well-structured response."""
         for message in response.messages:
             if message.contents:
                 for content in message.contents:
-                    if isinstance(content, TextContent):
-                        yield AgentRunResponseUpdate(
+                    if isinstance(content, Content):
+                        yield AgentResponseUpdate(
                             contents=[content],
                             role=Role.ASSISTANT
                         )

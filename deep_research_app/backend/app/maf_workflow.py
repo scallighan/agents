@@ -30,10 +30,8 @@ from agent_framework import (
     Executor,
     WorkflowContext,
     handler,
-    ChatAgent,
-    WorkflowOutputEvent,
-    WorkflowFailedEvent,
-    ExecutorCompletedEvent,
+    Agent,
+    WorkflowEvent
 )
 
 # Import TavilySearchService for multi-query deep research
@@ -938,7 +936,7 @@ async def execute_maf_workflow_research(
                 "timestamp": datetime.utcnow().isoformat()
             }
             
-            if isinstance(event, WorkflowOutputEvent):
+            if isinstance(event, WorkflowEvent):
                 event_info["executor_id"] = event.source_executor_id
                 event_info["data_type"] = type(event.data).__name__
                 logger.info(
@@ -951,19 +949,19 @@ async def execute_maf_workflow_research(
                 if isinstance(event.data, FinalOutput):
                     final_output = event.data
             
-            elif isinstance(event, ExecutorCompletedEvent):
-                event_info["status"] = "executor_completed"
-                executor_id = getattr(event, 'executor_id', 'unknown')
-                event_info["executor_id"] = executor_id
-                logger.info("Executor completed", executor_id=executor_id)
+            # elif isinstance(event, ExecutorCompletedEvent):
+            #     event_info["status"] = "executor_completed"
+            #     executor_id = getattr(event, 'executor_id', 'unknown')
+            #     event_info["executor_id"] = executor_id
+            #     logger.info("Executor completed", executor_id=executor_id)
                 
-                # Call progress callback if provided
-                if progress_callback:
-                    await progress_callback("executor_completed", executor_id)
+            #     # Call progress callback if provided
+            #     if progress_callback:
+            #         await progress_callback("executor_completed", executor_id)
             
-            elif isinstance(event, WorkflowFailedEvent):
-                event_info["status"] = "failed"
-                logger.error("Workflow failed")
+            # elif isinstance(event, WorkflowFailedEvent):
+            #     event_info["status"] = "failed"
+            #     logger.error("Workflow failed")
             
             results["events"].append(event_info)
         
