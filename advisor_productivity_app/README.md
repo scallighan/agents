@@ -176,3 +176,4 @@ npm run test
 ---
 
 This application demonstrates how MAF patterns, Azure AI services, and modern React experiences can combine to deliver compliant, advisor-first meeting intelligence.
+
