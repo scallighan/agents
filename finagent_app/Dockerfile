@@ -4,14 +4,14 @@
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
-COPY finagent_app/frontend/package*.json ./
-RUN npm ci
-COPY finagent_app/frontend/ ./
+COPY /frontend/package*.json ./
+RUN npm install
+COPY /frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Backend
 FROM python:3.11-slim AS backend-builder
-COPY finagent_app/backend/requirements.txt ./
+COPY /backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 3: Runtime
@@ -29,14 +29,14 @@ COPY --from=backend-builder /usr/local/lib/python3.11/site-packages /usr/local/l
 COPY --from=backend-builder /usr/local/bin /usr/local/bin
 
 # Copy framework directory (required dependency)
-COPY framework/ /app/framework/
+# COPY framework/ /app/framework/
 
 # Add framework to Python path
 ENV PYTHONPATH="/app:${PYTHONPATH}"
 
 # Copy backend application
-COPY finagent_app/backend/app /app/app
-COPY finagent_app/backend/requirements.txt /app/
+COPY /backend/app /app/app
+COPY /backend/requirements.txt /app/
 
 # Copy built frontend static files to be served by FastAPI
 COPY --from=frontend-builder /app/frontend/dist /app/static
@@ -57,3 +57,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+#CMD ["pip", "freeze"]

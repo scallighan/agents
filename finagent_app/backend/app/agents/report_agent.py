@@ -6,7 +6,7 @@ Generates PDF equity research reports from accumulated analysis.
 
 from typing import Any, Dict, List, Optional
 import structlog
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -75,11 +75,11 @@ Style Guidelines:
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
         thread: Any = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Generate equity research report."""
         task = self._extract_task(messages)
         context = kwargs.get("context", {})
@@ -252,10 +252,10 @@ Use clear, professional language. Include specific numbers. Be balanced and obje
                 return last_msg.text
         return "Generate equity research brief"
     
-    def _create_response(self, text: str) -> AgentRunResponse:
+    def _create_response(self, text: str) -> AgentResponse:
         """Create agent response."""
-        message = ChatMessage(
+        message = Message(
             role=Role.ASSISTANT,
-            contents=[TextContent(text=text)]
+            contents=[Content.from_text(text)]
         )
-        return AgentRunResponse(messages=[message])
+        return AgentResponse(messages=[message])

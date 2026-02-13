@@ -11,7 +11,7 @@ from datetime import datetime
 import structlog
 
 # Microsoft Agent Framework imports
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse, AgentRunResponseUpdate, AgentThread
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse, AgentResponseUpdate, AgentSession
 
 # Import data providers
 import sys
@@ -95,11 +95,11 @@ Structure your analysis clearly with supporting evidence from the filings."""
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """
         Execute SEC filing analysis (MAF required method).
         
@@ -109,17 +109,17 @@ Structure your analysis clearly with supporting evidence from the filings."""
             **kwargs: Additional context (ticker, context dict, etc.)
             
         Returns:
-            AgentRunResponse containing the SEC filing analysis
+            AgentResponse containing the SEC filing analysis
         """
         # Normalize input messages to a list
         normalized_messages = self._normalize_messages(messages)
         
         if not normalized_messages:
-            response_message = ChatMessage(
+            response_message = Message(
                 role=Role.ASSISTANT,
-                contents=[TextContent(text="Hello! I'm an SEC filing analyst. Please provide a ticker symbol.")]
+                contents=[Content.from_text("Hello! I'm an SEC filing analyst. Please provide a ticker symbol.")]
             )
-            return AgentRunResponse(messages=[response_message])
+            return AgentResponse(messages=[response_message])
         
         # Get context from kwargs
         context = kwargs.get("context", {})
@@ -407,21 +407,21 @@ Be professional, analytical, and provide actionable insights for investment deci
         
         return response.choices[0].message.content
     
-    def _create_response(self, text: str) -> AgentRunResponse:
+    def _create_response(self, text: str) -> AgentResponse:
         """Create agent response following MAF pattern."""
-        message = ChatMessage(
+        message = Message(
             role=Role.ASSISTANT,
-            contents=[TextContent(text=text)]
+            contents=[Content.from_text(text)]
         )
-        return AgentRunResponse(messages=[message])
+        return AgentResponse(messages=[message])
     
     async def run_stream(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AsyncIterable[AgentRunResponseUpdate]:
+    ) -> AsyncIterable[AgentResponseUpdate]:
         """
         Execute the agent and yield streaming response updates (MAF required method).
         
@@ -431,7 +431,7 @@ Be professional, analytical, and provide actionable insights for investment deci
             **kwargs: Additional keyword arguments
             
         Yields:
-            AgentRunResponseUpdate objects containing chunks of the response
+            AgentResponseUpdate objects containing chunks of the response
         """
         # For now, implement non-streaming version by yielding complete response
         # Future: Implement true streaming with Azure OpenAI streaming API
@@ -441,8 +441,8 @@ Be professional, analytical, and provide actionable insights for investment deci
         for message in response.messages:
             if message.contents:
                 for content in message.contents:
-                    if isinstance(content, TextContent):
-                        yield AgentRunResponseUpdate(
+                    if isinstance(content, Content):
+                        yield AgentResponseUpdate(
                             contents=[content],
                             role=Role.ASSISTANT
                         )
@@ -451,4 +451,4 @@ Be professional, analytical, and provide actionable insights for investment deci
         """Legacy method for YAML-based workflow compatibility."""
         context = context or {}
         response = await self.run(messages=task, thread=None, context=context)
-        return response.messages[-1].text if response.messages else ""
+        return response.messages[-1].contents[0].text if response.messages and response.messages[-1].contents else ""

@@ -10,7 +10,7 @@ from datetime import datetime
 import structlog
 
 # Microsoft Agent Framework imports
-from agent_framework import BaseAgent, ChatMessage, Role, TextContent, AgentRunResponse, AgentRunResponseUpdate, AgentThread
+from agent_framework import BaseAgent, Message, Role, Content, AgentResponse, AgentResponseUpdate, AgentSession
 
 # Import data providers
 import sys
@@ -86,15 +86,15 @@ Be data-driven and explain the reasoning behind signals."""
     
     async def run(
         self,
-        messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None,
+        messages: str | Message | list[str] | list[Message] | None = None,
         *,
-        thread: AgentThread | None = None,
+        thread: AgentSession | None = None,
         **kwargs: Any
-    ) -> AgentRunResponse:
+    ) -> AgentResponse:
         """Execute technical analysis (MAF required method)."""
         normalized_messages = self._normalize_messages(messages)
         if not normalized_messages:
-            return AgentRunResponse(messages=[ChatMessage(role=Role.ASSISTANT, contents=[TextContent(text="Hello! I'm a technical analysis agent.")])])
+            return AgentResponse(messages=[Message(role=Role.ASSISTANT, contents=[Content.from_text("Hello! I'm a technical analysis agent.")])])
         
         context = kwargs.get("context", {})
         ticker = context.get("ticker", kwargs.get("ticker"))
@@ -159,8 +159,8 @@ Be data-driven and explain the reasoning behind signals."""
             })
             context["artifacts"] = artifacts
             
-            return AgentRunResponse(
-                content=result_text,
+            return AgentResponse(
+                messages=[Message(role=Role.ASSISTANT, contents=[Content.from_text(result_text)])],
                 context=context
             )
             
@@ -170,8 +170,8 @@ Be data-driven and explain the reasoning behind signals."""
                 error=str(e),
                 ticker=ticker
             )
-            return AgentRunResponse(
-                content=f"Error performing technical analysis for {ticker}: {str(e)}",
+            return AgentResponse(
+                messages=[Message(role=Role.ASSISTANT, contents=[Content.from_text(f"Error performing technical analysis for {ticker}: {str(e)}")])],
                 context=context
             )
     
@@ -413,21 +413,21 @@ Be specific with the actual numbers from the data above. Explain why certain ind
         
         return response.choices[0].message.content
     
-    def _create_response(self, text: str) -> AgentRunResponse:
+    def _create_response(self, text: str) -> AgentResponse:
         """Create agent response following MAF pattern."""
-        return AgentRunResponse(messages=[ChatMessage(role=Role.ASSISTANT, contents=[TextContent(text=text)])])
+        return AgentResponse(messages=[Message(role=Role.ASSISTANT, contents=[Content.from_text(text)])])
     
-    async def run_stream(self, messages: str | ChatMessage | list[str] | list[ChatMessage] | None = None, *, thread: AgentThread | None = None, **kwargs: Any) -> AsyncIterable[AgentRunResponseUpdate]:
+    async def run_stream(self, messages: str | Message | list[str] | list[Message] | None = None, *, thread: AgentSession | None = None, **kwargs: Any) -> AsyncIterable[AgentResponseUpdate]:
         """Execute and yield streaming response (MAF required method)."""
         response = await self.run(messages, thread=thread, **kwargs)
         for message in response.messages:
             if message.contents:
                 for content in message.contents:
-                    if isinstance(content, TextContent):
-                        yield AgentRunResponseUpdate(contents=[content], role=Role.ASSISTANT)
+                    if isinstance(content, Content):
+                        yield AgentResponseUpdate(contents=[content], role=Role.ASSISTANT)
     
     async def process(self, task: str, context: Dict[str, Any] = None) -> str:
         """Legacy method for YAML workflow compatibility."""
         context = context or {}
         response = await self.run(messages=task, thread=None, context=context)
-        return response.messages[-1].text if response.messages else ""
+        return response.messages[-1].contents[0].text if response.messages and response.messages[-1].contents else ""

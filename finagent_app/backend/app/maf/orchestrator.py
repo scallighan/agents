@@ -8,13 +8,13 @@ from typing import Dict, Iterable, List, Sequence
 import structlog
 
 from agent_framework import (
-    ChatMessage,
+    Message,
     Role,
-    SequentialBuilder,
-    ConcurrentBuilder,
-    WorkflowOutputEvent,
-    TextContent,
+    Content,
+    WorkflowEvent
 )
+
+from agent_framework.orchestrations import SequentialBuilder, ConcurrentBuilder
 
 logger = structlog.get_logger(__name__)
 
@@ -23,7 +23,7 @@ logger = structlog.get_logger(__name__)
 class WorkflowResult:
     """Represents the condensed outcome of a workflow execution."""
 
-    messages: List[ChatMessage]
+    messages: List[Message]
 
     def last_text(self) -> str:
         """Return the text content of the final message, if available."""
@@ -58,17 +58,17 @@ class MAFOrchestrator:
     def list_agents(self) -> List[str]:
         return sorted(self._agents)
 
-    def _build_messages(self, prompt: str | ChatMessage | Sequence[ChatMessage]) -> List[ChatMessage]:
+    def _build_messages(self, prompt: str | Message | Sequence[Message]) -> List[Message]:
         if isinstance(prompt, list):
             return list(prompt)
-        if isinstance(prompt, ChatMessage):
+        if isinstance(prompt, Message):
             return [prompt]
-        return [ChatMessage(role=Role.USER, contents=[TextContent(text=str(prompt))])]
+        return [Message(role=Role.USER, contents=[Content.from_text(str(prompt))])]
 
     async def run_sequential(
         self,
         agent_names: Sequence[str],
-        prompt: str | ChatMessage | Sequence[ChatMessage],
+        prompt: str | Message | Sequence[Message],
     ) -> WorkflowResult:
         """Execute agents sequentially and return their aggregated output."""
         agents = [self.get_agent(name) for name in agent_names]
@@ -84,7 +84,7 @@ class MAFOrchestrator:
     async def run_concurrent(
         self,
         agent_names: Sequence[str],
-        prompt: str | ChatMessage | Sequence[ChatMessage],
+        prompt: str | Message | Sequence[Message],
     ) -> WorkflowResult:
         """Execute agents concurrently (fan-out) and gather outputs."""
         agents = [self.get_agent(name) for name in agent_names]
@@ -98,9 +98,9 @@ class MAFOrchestrator:
         return WorkflowResult(messages=messages)
 
     @staticmethod
-    def _extract_output_messages(events: Iterable[object]) -> List[ChatMessage]:
-        collected: List[ChatMessage] = []
+    def _extract_output_messages(events: Iterable[object]) -> List[Message]:
+        collected: List[Message] = []
         for event in events:
-            if isinstance(event, WorkflowOutputEvent):
+            if isinstance(event, WorkflowEvent):
                 collected.extend(event.data or [])
         return collected

@@ -16,7 +16,7 @@ structlog
 # - azure-monitor-opentelemetry packages  
 # - websockets (via mcp[ws])
 # - and other dependencies
-agent-framework
+agent-framework==1.0.0b260212
 
 # Azure dependencies
 azure-identity
@@ -44,3 +44,7 @@ pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 black==24.10.0
 ruff==0.7.3
+
+azure-monitor-opentelemetry==1.8.6
+opentelemetry-instrumentation-fastapi
+azure-monitor-opentelemetry-exporter

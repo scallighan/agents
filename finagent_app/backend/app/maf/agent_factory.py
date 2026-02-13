@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Type
 
 import structlog
 
-from agent_framework import ChatAgent
+from agent_framework import Agent
 from agent_framework.azure import AzureOpenAIChatClient
 
 from ..infra.settings import Settings
@@ -27,14 +27,14 @@ class AgentDefinition:
 
 
 class MAFAgentFactory:
-    """Factory that provides configured `ChatAgent` instances for the app."""
+    """Factory that provides configured `Agent` instances for the app."""
 
     def __init__(
         self,
         settings: Settings,
         *,
         chat_client: Optional[AzureOpenAIChatClient] = None,
-        chat_agent_cls: Type[ChatAgent] = ChatAgent,
+        chat_agent_cls: Type[Agent] = Agent,
     ) -> None:
         self._settings = settings
         self._chat_agent_cls = chat_agent_cls
@@ -201,7 +201,7 @@ class MAFAgentFactory:
         *,
         name: Optional[str] = None,
         overrides: Optional[Dict[str, Any]] = None,
-    ) -> ChatAgent:
+    ) -> Agent:
         """Instantiate a chat agent configured for the specified archetype."""
         definition = self.get_definition(agent_type)
         config = {"system_message": definition.system_prompt, **definition.defaults}

@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 import structlog
 
-from agent_framework import AgentRunResponse, ChatAgent, ChatMessage, Role, TextContent
+from agent_framework import AgentResponse, Agent, Message, Role, Content
 
 logger = structlog.get_logger(__name__)
 
@@ -43,7 +43,7 @@ class MAFDynamicPlanner:
 
     def __init__(
         self,
-        planner_agent: ChatAgent,
+        planner_agent: Agent,
         *,
         planning_rules: Optional[str] = None,
     ) -> None:
@@ -66,7 +66,7 @@ class MAFDynamicPlanner:
 
         response = await self._planner_agent.run(
             messages=[
-                ChatMessage(role=Role.USER, contents=[TextContent(text=prompt)]),
+                Message(role=Role.USER, contents=[Content.from_text(prompt)]),
             ]
         )
 
@@ -123,12 +123,12 @@ class MAFDynamicPlanner:
         )
 
     @staticmethod
-    def _extract_text(response: AgentRunResponse) -> str:
+    def _extract_text(response: AgentResponse) -> str:
         if not response or not response.messages:
             raise PlanParsingError("Planner returned empty response")
         last_message = response.messages[-1]
-        if isinstance(last_message, ChatMessage):
-            return last_message.text or ""
+        if isinstance(last_message, Message):
+            return last_message.contents[0].text if last_message.contents else ""
         return str(last_message)
 
     @classmethod
