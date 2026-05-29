@@ -78,10 +78,12 @@ class HeaderMiddleware(Middleware):
     async def on_message(self, context: MiddlewareContext, call_next):
         # This method receives ALL messages regardless of type
         headers = get_http_headers()
+        api_key = headers.get("x-api-key")
+        expected_api_key = os.environ.get("MCP_API_KEY")
         #logger.info(f"HeaderMiddleware called: {{'headers': {headers}}}")
         #logger.info(f"HeaderMiddleware processing: {context.method}")
-        if headers.get("x-api-key") and headers.get("x-api-key") != os.environ.get("MCP_API_KEY"):
-            logger.warning(f"Unauthorized access attempt with API key: {headers.get('x-api-key')}")
+        if not api_key or not api_key.strip() or api_key.strip() != expected_api_key:
+            logger.warning(f"Unauthorized access attempt with API key: {api_key}")
             return JSONResponse(status_code=401, content={"error": "Unauthorized"})
         result = await call_next(context)
         #logger.info(f"HeaderMiddleware completed: {context.method}")

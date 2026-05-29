@@ -229,3 +229,105 @@ resource "azurerm_container_app" "mcp" {
     ignore_changes = [ secret ]
   }
 }
+
+resource "azurerm_container_app" "finagent" {
+  name                         = "aca-${local.func_name}-yfinance-finagent"
+  container_app_environment_id = azurerm_container_app_environment.this.id
+  resource_group_name          = azurerm_resource_group.rg.name
+  revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
+
+  template {
+    container {
+      name   = "finagent"
+      image  = "ghcr.io/${var.gh_repo}-finagent:latest"
+      cpu    = 0.5
+      memory = "1.0Gi"
+
+      env {
+        name = "AZURE_OPENAI_ENDPOINT"
+        value = ""
+      }
+      env {
+        name = "AZURE_OPENAI_ENDPOINT"
+        value = ""
+      }
+      env {
+        name = "AZURE_OPENAI_KEY"
+        value = ""
+      }
+      env {
+        name = "AZURE_OPENAI_DEPLOYMENT"
+        value = ""
+      }
+      env {
+        name = "AZURE_OPENAI_API_VERSION"
+        value = ""
+      }
+      env {
+        name = "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"
+        value = ""
+      }
+      env {
+        name = "FMP_API_KEY"
+        value = ""
+      }
+      env {
+        name = "YAHOO_FINANCE_ENABLED"
+        value = "true"
+      }
+      env {
+        name = "SEC_API_KEY"
+        value = ""
+      }
+      env {
+        name = "SEC_USER_AGENT"
+        value = ""
+      }
+      env {
+        name = "AZURE_STORAGE_CONNECTION_STRING"
+        value = ""
+      }
+      env {
+        name = "AZURE_STORAGE_CONTAINER"
+        value = ""
+      }
+      env {
+        name = "COSMOS_DB_ENDPOINT"
+        value = ""
+    }
+    http_scale_rule {
+      name                = "http-1"
+      concurrent_requests = "100"
+    }
+    min_replicas = 1
+    max_replicas = 1
+  }
+
+  ingress {
+    allow_insecure_connections = false
+    external_enabled           = true
+    target_port                = 8000
+    transport                  = "auto"
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  secret {
+    name = "mcp-api-key"
+    identity = azurerm_user_assigned_identity.this.id
+    key_vault_secret_id = azurerm_key_vault_secret.apikey.id
+  }
+
+  identity {
+    type = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.this.id]
+  }
+  tags = local.tags
+
+  lifecycle {
+    ignore_changes = [ secret ]
+  }
+}
